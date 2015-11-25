@@ -1,0 +1,584 @@
+New ICGC read me 30/07/2015
+
+1.	Selection of ccRCC WGS somatic mutation dataset from ICGC
+
+Initially TCGA and then COSMIC ccRCC datasets were used, but when the results were evaluated, more coding SVs were obtained. The contact centres of the respective databases were contacted and it was confirmed that these were actually whole exome sequencing datasets, despite being under the heading ‘whole genome.’
+The ICGC dataset was then retrieved and confirmed to be whole genome sequenced somatic variants.
+
+1.1.	Downloaded simple somatic mutation in ccRCC from ICGC
+https://dcc.icgc.org/repository/current/Projects/RECA-EU
+
+File: simple_somatic_mutation.open.RECA-EU.tsv  (Release18 January 21, 2015)
+Contains: intergenic, intragenic, splice site, 5’UTR, 3’UTR, intron, exon, upstream of gene, downstream of gene
+Technology platform:
+Illumina HiSeq/SOLEXA	
+Full genome sequencing (matched mononuclear cell fraction from peripheral blood and tumour, as per ICGC_Policies_E6.pdf)
+Base calling algorithm = CASAVA version 1.7
+Alignment algorithm = BWA 0.5.9r16 (Burrows-Wheeler Aligner) 
+Variation calling algorithm = samtools mpileup
+Other analysis algorithm = Genome Analysis Toolkit, Picard, SNpEff, VCF Tools, BVA Tools
+95 donors contributed their tumour and matching normal ccRCC samples from the primary site of the tumour. 42 donors were female and 53 were male. 53 specimens were from stage 1 while the rest were more or less evenly distributed across the other stages.  Altogether 475749 substitution mutations were detected involving 47743 genes of which 225224 mutations were in the intronic region, 240821 were in the intergenic regions, 58254 were upstream of genes, 60607 were downstream and 20997 mutations were detected in the exonic and splice site regions.	 https://dcc.icgc.org/search?filters={%22donor%22:{%22projectId%22:{%22is%22:[%22RECA-EU%22]},%22availableDataTypes%22:{%22is%22:[%22ssm%22]}}}
+
+1.2.	 There were 95 unique donors, specimens and samples as shown by the Linux command: sort –t ‘Cntl + V + tab’ –k2,2 (donor)/-k4,4 (specimen)/ -k5,5 (sample) simple_somatic_mutaion.open.RECA-EU.tsv –u > uniq_donor/specimen/sample_ID.txt
+
+1.3.	I checked if they were all GRCh37 coordinates using grep –c GRCh37 simple_somatic_mutaion.open.RECA-EU.tsv. Had 1522025 hits. The same as the number of lines in the file using wc –l.
+
+1.4.	 I Did the same to check if they were Whole genome sequenced grep –c WGS simple_somatic_mutaion.open.RECA-EU.tsv and this was found to be the same count as the same as the number of lines in the file using wc –l.
+
+1.5.	 I also downloaded the ICGC clinical data file from https://dcc.icgc.org/api/v1/download?fn=/release_18/Projects/RECA-EU/clinical.RECA-EU.tsv.gz
+
+File: MASTERS-2014/ICGC/donor.all_projects.tsv
+The file contains: icgc donor id, project code, study donor involved in (eg. EU or US), submitted donor id, donor sex, vital status, disease status at last follow up, relapse type (progression), donor age at diagnosis, age at enrolment, age at last follow up, relapse interval, donor diagnosis_icd10, donor tumour staging system at diagnosis, tumour stage at diagnosis, tumour stage at diagnosis supplemental, survival time, interval of last follow up
+
+2.	Selection of genes of interest
+2.1.	ccRCC genes
+
+The following databases were queried and the below-mentioned criteria were used to select the genes of interest.
+
+
+NCBI (OMIM) -  81 genes
+http://www.ncbi.nlm.nih.gov/omim
+
+Too few genes (ONLY 10) if I select “clear cell renal cell carcinoma”
+Advanced search: “renal cell carcinoma”
+Selected only those preceded by asterix (*)
+
+NCBI (Gene) - 134 genes
+http://www.ncbi.nlm.nih.gov/gene
+
+Criteria: “clear cell renal cell carcinoma” AND “Homo sapiens” 
+Homo sapiens (side panel)
+Gene source: Genomic
+Categories: Alternatively spliced, Annotated genes
+Sequence content: Ensembl
+
+Oncomine - (2844 genes)
+https://www.oncomine.org/resource/login.html (requires Login details)
+
+Analysis Type: clear cell renal cell carcinoma vs. Normal Analysis
+Analysis Type: Kidney cancer vs. Normal Analysis
+Analysis Type: clear cell renal cell carcinoma
+Molecular subtype: Mutation
+Sample Type: clinical specimen
+Selected top 10% over and under expressed genes. 
+
+Intogen  - (263 genes)
+
+Filtered by: Cancer site: Kidney cancer
+Driver category: HCD (High confident drivers) 
+
+COSMIC– 300 genes 
+https://www.intogen.org/search
+
+Criteria: Clear cell renal cell carcinoma
+Genes with mutations TAB
+Selected the top 300 genes based on amount of mutated samples out of the amount of samples tested 
+
+2.2.	Non-disease genes
+
+I wrote a script to select 500 random non-disease genes from a file containing 38256 non-disease genes compiled by a previous Post-doc student Dr Wendy Kroger. I took 500 at first because when I selected the correct amount of genes, many of them didn't have HGNC symbols and I needed genes with both Ensembl and HGNC symbols.
+Python script: random_nondisease_genes.py
+
+Input file: /MASTERS_2014/ICGC/SV_results/Non_coding_genes_hits/ensembl_non_disease_genes.txt
+Output file: /MASTERS_2014/ICGC/bed_files_non_disease_175_random_genes/500_random_lines_new.txt
+
+I converted the 500 random Ensembl IDs to Ensembl Transcript IDs with their strand orientation and HGNC symbols using Biomart Ensembl.
+
+Output file: ICGC/ALL_non_disease_genes_with_or_without_ensembl_ID.txt
+I used the sort function in excel to extract only the genes that had HGNC symbols, because it would later be needed to confirm that the hits found where representative of my GOIs. The chromosome number and strand were also extracted for interest’s sake.
+Output file: ICGC/ALL_non_disease_genes_with_unique_Ensembl_ID.txt
+
+The random_nondisease_genes.py script was modified to extract JUST 173 genes from the script with all the non-disease genes (that had both an Ensembl ID and HGNC symbol)
+Input: /MASTERS_2014/ICGC/ALL_non_disease_genes_with_unique_Ensembl_ID.txt
+Output: /MASTERS_2014/ICGC/173_non_disease_genes.txt
+ sort -k2,2 173_non_disease_genes.txt -u > 173_non_disease_genes_UNIQ.txt was used to confirm that the HGNC Ids were unique and wc -l was used to confirm that the number of ccRCC genes I was working with was 173.
+The Ensembl ID's of the 173 non-disease genes were again submitted to Biomart in order to retrieve the transcript ID's for only those 173 genes, because UCSC didn't recognize many of the HGCN symbols and doesn’t accept Ensembl Ids
+The data was stored in	 ICGC/173_non_disease_genes_with_Ensembl_transcript.txt
+
+3.	Extraction of bed files form UCSC
+3.1.	ccRCC disease genes
+
+It was found that the + strand in the ICGC dataset was actually representative of the reference genome strand on which the genotype alleles are located and it has nothing to do with the strandedness of the gene that contains the somatic mutation.
+
+3.1.1.	Therefore the HGNC symbols of the 175 GOI where again submitted to Ensembl in order to extract the Ensembl Ids for the genes (the ICGC doc only reports Ensembl Ids).
+Output file: 
+ICGC/ALL_ccRCC_disease_genes_with_or_without_ensembl_ID.txt
+Those that had Ensembl ID's were retained because it would later be needed to confirm that the hits found where representative of my GOIs. Also the chromosome and strand was extracted..
+Output file: ICGC/173_GOI_with_unique_Ensembl_ID.txt
+
+3.1.2.	The sort -k2,2 173_GOI_with_unique_Ensembl_ID.txt -u > 175_ccRCC_disease_genes_with_or_without_ensembl_ID_UNIQ.txt was used to confirm that the HGNC Ids were unique and wc -l was used to confirm that the number of ccRCC genes I was working with was 173.
+
+3.1.3.	The regional genomic coordinates of the 5’-UTR, 3’-UTR, introns, CDS and promoter regions (1kB upstream of the TSS) were retrieved from UCSC using the Table function (http://genome.ucsc.edu/cgi-bin/hgTables) and the GRCh37/hg19 human genome reference. 
+The UCSC track was chosen over Ensembl and Refseq, because the latter two could not pick up some of the 175 GOI. The format is:
+Chromosome		genomic_ start		genomic_end		ucsc_description	score		strand
+
+Output files: ICGC/ Bed_files_of_175_genes_using_UCSC/173_ccRCC_genes/ 3UTR_173_ccRCC_genes.txt
+
+3.1.4.	 A proportion of coordinates for each genomic region were manually checked to see if they were located within the regions specified by UCSC. For each file there were more entries than the original number of genes, but this was accounted for by the presence of many splice variants per gene.
+
+3.1.5.	sort -k1,1 -k2,2 -k3,3 -k6,6 promoter_175_ccRCC_genes.txt -u > promoter_175_ccRCC_genes_UNIQ.txt was used to extract the unique lines based on chromosome, genomic range and strand.
+Output file:
+ ICGC/ Bed_files_of_175_genes_using_UCSC/173_ccRCC_genes/ 3UTR_173_ccRCC_genes_UNIQ.txt
+
+3.2.	Non-disease genes
+
+3.2.1.	The transcript IDs were submitted to UCSC's table browser to extract the 5'UTR, 3'UTR, promoter, CDS and intronic regions of the 173 non-disease genes.
+Output files: 
+/MASTERS_2014/ICGC/bed_files_non_disease_175_random_genes/173_non_disease_genes/3UTR_173_non_disease_genes.txt
+The unique bed range coordinates were again extracted using: 
+sort -k1,1 -k2,2 -k3,3 -k6,6 promoter_173_non_disease_genes.txt -u > promoter_173_non_disease_genes_UNIQ.txt 
+
+
+
+
+
+
+4.	SV Discovery
+
+4.1.	Disease genes
+
+4.1.1.	Wrote a script to find all the somatic variants for distinct genomic regions
+Python: icgc_variants.py
+
+Input files: 
+/MASTERS_2014/ICGC/Bed_files_of_175_genes_using_UCSC/173_ccRCC_genes/3UTR_173_ccRCC_genes_UNIQ.txt  AND simple_somatic_mutation.open.RECA-EU.tsv
+
+Output: ~/MASTERS_2014/ICGC/SV_results/SV_results_173ccRCC_3UTR.txt'
+
+The hits were first printed to Stdout with the bed range in order to check if the variant position did fall within the bed range. This was however not retained in the files of interest.
+
+4.1.2.	Many duplicate genes existed due to one gene having many different Ensemble transcript ID’s. The unique entries were maintained and sorted by using a Linux command:
+ sort -t'Ctrl+V+Tab' -k1,1 -k2,2 -k5,5  -k8,8 -k9,9 -k10,10 -k16,16 -u SV_results_173ccRCC_3UTR.txt > SV_results_173ccRCC_3UTR_UNIQ.txt
+Output: ~/MASTERS_2014/ICGC/SV_results/UNIQ_173_ccRCC/SV_results_173ccRCC_3UTR_UNIQ.txt
+
+4.1.3.	However, because there are many overlapping genes in the human genome, many of the hits based on genomic position were not within the genes within the GOI list. The Ensembl and HGNC Ids were therefore retrieved using Biomart ensembl Grch37 (12 June 2015) and matched with the SV file to retrieve only those linked to the genes of interest
+
+Python script: 
+checking_if_ensembl_IDs_of_173_GOI_are_in_SV_hits.py
+Input files:
+ /Desktop/tumour_genes/ensembl_Ids_for_173_ccRCC_genes.txt AND MASTERS_2014/ICGC/SV_results/UNIQ_173_ccRCC/SV_results_173ccRCC_3UTR_UNIQ.txt
+
+Output: /MASTERS_2014/ICGC/SV_results/actual_hits/173ccRCC_genes/actual_hits_175_ccRCC_promoter.txt
+
+4.1.4.	Duplicates were eliminated based on a unique genomic position, gene, donor ID, structural annotations, alleles and Ensembl ID.
+sort -k1,1 -k2,2 -k3,3 -k4,4 -k5,5 -k7,7 -k8,8 -k9,9 -k10,10 -k11,11 actual_hits_175_ccRCC_introns.txt -u > actual_hits_175_ccRCC_introns_UNIQ.txt
+There were no duplicates
+
+4.1.5.	The number of unique somatic mutations based on just the genomic position, Ensembl ID and alleles, were also subtracted because this was required for the density study
+sort -k1,1 -k2,2 -k3,3 -k4,4 -k7,7 -k8,8 -k9,9 -k11,11 actual_hits_175_ccRCC_promoter.txt -u > actual_hits_175_ccRCC_promoter_UNIQ_positions.txt
+Output: /MASTERS_2014/ICGC/SV_results/actual_hits/173ccRCC_genes/uniq_positions/
+
+The RCC genes which had no somatic mutations were determined using the Countif feature in Excel and stored in the file: 
+pivot_combined_non_coding_non_disease_ALL.xlsx , in the sheet: genes with NO mutations
+
+ 
+4.2.	Non-disease genes
+
+4.2.1.	I wrote a script to find all the somatic variants for distinct genomic regions
+Python: icgc_non_disease_genes_variants.py
+Input files: 
+~/MASTERS_2014/ICGC/bed_files_non_disease_175_random_genes/173_non_disease_genes/3UTR_173_non_disease_genes_UNIQ.txt AND simple_somatic_mutation.open.RECA-EU.tsv
+
+Output: /MASTERS_2014/ICGC/SV_results/Non_disease_genes_hits/Results/173_non_disease_genes/SV_results_173_non_disease_introns.txt
+
+The hits were first printed to Stdout with the bed range in order to check if the variant position did fall within the bed range. This was however not retained in the files of interest.
+
+4.2.2.	Many duplicate genes existed due to one gene having many different Ensemble transcript ID’s. The unique entries were maintained and sorted by using a Linux command:
+sort -t'Ctrl+V+Tab' -k1,1 -k2,2 -k3,3 -k5,5  -k8,8 -k9,9 -k10,10 -k16,16 -u SV_results_173_non_disease_introns.txt > SV_results_173_non_disease_introns_UNIQ.txt
+
+Output: ~/MASTERS_2014/ICGC/SV_results/Non_disease_genes_hits/Results/173_non_disease_genes/UNIQ/
+
+4.2.3.	However because there are many overlapping genes in the human genome, many of the hits based on genomic position were not within the genes within the GOI list. The Ensembl and HGNC Ids were therefore retrieved using BioMart Ensembl Grch37 (12 June 2015) and matched with the SV file to retrieve only those linked to the genes of interest
+
+Python script:
+ checking_if_ensembl_IDs_of_173_GOI_are_in_SV_hits.py
+Input files: 
+MASTERS_2014/ICGC/173_non_disease_genes.txt  AND MASTERS_2014/ICGC/SV_results/Non_disease_genes_hits/Results/173_non_disease_genes/UNIQ/SV_results_173_non_disease_introns_UNIQ.txt
+
+Output: /MASTERS_2014/ICGC/SV_results/actual_hits/173_non_disease_genes/actual_hits_175_non_disease_3UTR.txt
+
+4.2.4.	Duplicates were elimated based on a unique genomic position, gene, donor ID, structutal annotations, alleles and ensembl ID.
+sort -k1,1 -k2,2 -k3,3 -k4,4 -k5,5 -k7,7 -k8,8 -k9,9 -k10,10 -k11,11 actual_hits_175_non_disease_3UTR.txt -u > actual_hits_175_non_disease_3UTR_UNIQ.txt
+There were no duplicates
+
+4.2.5.	The number of unique somatic mutations based on just the genomic position, Ensembl ID and alleles, were also subtracted because this was required for the density study using:
+sort -k1,1 -k2,2 -k3,3 -k4,4 -k7,7 -k8,8 -k9,9 -k11,11 actual_hits_175_non_disease_3UTR.txt  -u > actual_hits_175_non_disease_3UTR_UNIQ_positions.txt
+
+Output: /MASTERS_2014/ICGC/SV_results/actual_hits/173_non_disease_genes/uniq_positions
+
+
+5.	Density of hits
+5.1.	ccRCC disease genes
+
+5.1.1.	The density of the hits were check based on the unique position of the somatic mutation, its genes ID and alleles involved using
+Python script: density_hits_ccRCC.py
+
+Input files: 	 /MASTERS_2014/ICGC/SV_results/actual_hits/173ccRCC_genes/uniq_positions/actual_hits_175_ccRCC_3UTR_UNIQ_positions.txt AND /MASTERS_2014/ICGC/Bed_files_of_175_genes_using_UCSC/173_ccRCC_genes/3UTR_173_ccRCC_genes_UNIQ.txt
+
+Output files: Std out
+
+5.1.2.	The density_hits_ccRCC.py script was checked by extracting the genomic bases for JUST the PTEN gene (ENSG00000171862) from UCSC. Duplicates were also removed by sort –t ‘cntrl+v+tab’ –k1,1 –k2,2 –k3,3  -u PTEN_gene  > PTEN_gene_*_UNIQ. The bases were manually added per distinct genomic region to calculate the total number of bases. The density was also manually checked by dividing the number of hits over the total number of bases.
+Input files:
+MASTERS/ICGC/Confirm_with_PTEN/ucsc_bed_regions_PTEN/PTEN_gene_*_UNIQ
+Output file: 	
+MASTERS/ICGC/Confirm_with_PTEN/pten_sum_of_bases.ods
+
+
+
+5.2.	Non-disease genes
+
+5.2.1.	The density_hits_ccRCC.py script was modified to accommodate the non-disease genes.
+Input files:	  MASTERS_2014/ICGC/SV_results/actual_hits/173_non_disease_genes/uniq_positions/actual_hits_175_non_disease_3UTR_UNIQ_positions.txt AND /MASTERS_2014/ICGC/bed_files_non_disease_175_random_genes/173_non_disease_genes/3UTR_173_non_disease_genes_UNIQ.txt 
+Output files: Std out
+
+6.	RegulomeDb
+
+6.1.	ccRCC disease genes
+
+
+6.1.1.	In order to enter the data to RegulomeDB the end coordinates of the somatic mutations had to be converted to zero based format using a Python script: add_one_to_coordinate2_RCC.py
+
+6.1.2.	Thereafter the coordinates were submitted to RegulomeDB
+However the introns file was too big and had to be split into manageable sizes for input
+split -l 200 regulome_coord_coverted_ccRCC_introns.txt was used, which created 20 files nammed xaa – xau
+
+The files were then submitted to RegulomeDb and the results were stored in
+/ICGC/Regulome_annotations/Results/Annotations_from_web_interface/173_ccRCC_genes/regulomedb_results_ccRCC_3UTR.bed and regulomedb_results_ccRCC_3UTR.full
+The intronic file was stored separately in /ICGC/Regulome_annotations/Results/Annotations_from_web_interface/173_ccRCC_genes/introns/regulomedb_results_introns_xaa.bed up until regulomedb_results_introns_xau.bed. The same was done for the .bed files.
+sort -k4,4 -k1,1n -k2,2n -k3,3n regulomedb_results_introns_xa*.bed -u > regulomedb_results_ccRCC_introns.bed was used to combine the files and wc -l was used to check that the orginal amount that was submitted was in the output file
+Output file: regulomedb_results_ccRCC_introns.bed
+
+
+6.2.	Non-disease genes
+
+6.2.1.	The input files of the same script was modified to accommodate the non-disease variants using the add_one_to_coordinate2.py script.
+Input files:
+/MASTERS_2014/ICGC/SV_results/actual_hits/173_non_disease_genes/uniq_positions/actual_hits_175_non_disease_introns_UNIQ_positions.txt
+Output files: /MASTERS_2014/ICGC/Regulome_annotations/Files_for_input_to Regulome_webfront/non_disease_genes/regulome_coord_coverted_non_disease_introns.txt
+
+6.2.2.	These files were then also submitted to RegulomeDB and output files  output from RegulomeDB was stored in
+ICGC/Regulome_annotations/Results/Annotations_from_web_interface/Non_disease_genes/regulomedb_results_non_disease_5UTR.bed and regulomedb_results_non_disease_5UTR.full
+
+
+
+7.	Matching RegulomeDB results to ICGC SV
+7.1.	ccRCC disease genes
+
+I wrote a script to check link up the RegulomeDB annotation with their original variants in order to eventually extract the total number of variants and the number of deleterious variants that are linked to a specific tumour; as well as other trends in terms of the mutational landscape.  I also used this script in order to see if any of mutations were indels.
+Python script: no_of_tumours_with_deleterious_annotions.py
+
+Input files: 
+/MASTERS_2014/ICGC/Regulome_annotations/Results/Annotations_from_web_interface/173_ccRCC_genes/regulomedb_results_ccRCC_promoter.bed AND /MASTERS_2014/ICGC/SV_results/actual_hits/173ccRCC_genes/actual_hits_175_ccRCC_promoter.txt
+
+Output files: /MASTERS_2014/ICGC/Regulome_annotations/Results/Annotations_from_web_interface/regulome_annotation_matched_to_original_variant/173_ccRCC_genes/173_ccRCC_regulome_annotation_promoter_sv.txt
+
+The output was checked to see if there were the same amount as in the original actual hits file with a unique Ensembl ID, patients ID, genomic positions and alleles.
+
+
+
+7.2.	Non-disease genes
+
+The no_of_tumours_with_deleterious_annotions.py script was modified for the non-disease genes
+
+Input files: 
+/MASTERS_2014/ICGC/Regulome_annotations/Results/Annotations_from_web_interface/Non_disease_genes/regulomedb_results_non_disease_promoter.bed AND 
+/MASTERS_2014/ICGC/SV_results/actual_hits/173_non_disease_genes/actual_hits_175_non_disease_promoter.txt
+
+Output files:
+/MASTERS_2014/ICGC/Regulome_annotations/Results/Annotations_from_web_interface/regulome_annotation_matched_to_original_variant/173_non_disease_genes/non_disease_regulome_annotation_promoter_sv.txt
+
+
+
+8.	Analysis of somatic mutations
+8.1.	ccRCC disease genes
+
+
+8.1.1.	The non-coding ccRCC variant were combined in order to see which genes came up frequently in different donors , which chromosomes are often affected etc.
+
+sort -k1,1 -k2,2 -k3,3 -k4,4 -k5,5 -k7,7 -k8,8 -k9,9 -k10,10 -k11,11 -k12,12 173_ccRCC_regulome_annotation_introns_sv.txt 173_ccRCC_regulome_annotation_3UTR_sv.txt 173_ccRCC_regulome_annotation_5UTR_sv.txt 173_ccRCC_regulome_annotation_promoter_sv.txt -u > combined_non_coding_regulome_annotation_of_sv.txt 
+
+Output file: 
+/MASTERS_2014/ICGC/Regulome_annotations/Results/Annotations_from_web_interface/regulome_annotation_matched_to_original_variant/173_ccRCC_genes/combined_non_coding_regulome_annotation_of_sv.txt 
+
+
+8.1.2.	This data was placed into a pivot table in order to do the analysis.
+
+Output: /MASTERS_2014/ICGC/Regulome_annotations/Results/Annotations_from_web_interface/regulome_annotation_matched_to_original_variant/173_ccRCC_genes/combined/pivot_combined_non_coding_ALL.xlsx
+
+
+8.1.3.	The CDS data was also copied to the pivot containing all non-coding data (sheet: ALL coding and non-cod data) to do a comparison on which genomic regions contained the most mutations (sheet: mutation p genomic region + CDS).
+
+8.1.4.	The deleterious variants were extracted and placed into a separate excel sheet (pivot_combined_non_coding_deleteriou.xlsx). 
+
+8.1.5.	A Vlookup was carried out in Excel to compare the number of all non-coding somatic mutations, CDS somatic mutations and deleterious non-coding somatic mutations. This was done in the (pivot_combined_non_coding_deleterious.xlsx excel doc, sheet: vlookup patient and mutations).
+
+
+8.1.6.	To see if the reason why some genes accumulated more mutations was simply due to the gene being longer and hence having more targets for variation, a scatter plot was drawn up using Excel. The gene lengths of the 60 genes with contained RegulomeDB deleterious mutations were submitted to Biomart Ensembl (hg19) and the gene lengths were extracted from the Structures attribute. The difference in gene lengths were calculated in excel and the deleterious mutations were placed in a column next to it in excel. Excels built-in scatter plot was used to draw up the scatter plot. (scatter plot of deleterious gene lengths and the number of mutations.xlsx)
+
+
+8.1.7.	The same procedure was followed for all non-coding mutations (=VLOOKUP(A2,$E$2:$F$166,2,FALSE)) and stored in the file all non-coding mutations and their gene lengths and PHENOTYPES.xlsx. 
+
+8.1.8.	The genes within which one patient had multiple mutations (TRIO, FRYL and AKT1) and the genes where several patients had mutations at the exact same location  (ADCY1, ANK3, CUBN, VWF and VHL)  were also scrutinized to see if they generally occurred in the longer genes and were highlighted in yellow and green respectively in the file all non-coding mutations and their gene lengths and PHENOTYPES.xlsx, Tab uniq genes
+
+9.	BioMart Gene Ontology annotations
+
+9.1.	For the 164 genes with non-coding somatic mutations the GO was extracted for Ensembl BioMart
+From the Attributes: (Features) External option, the GO term and GO definition were chosen and saved in path:	 /ICGC/Regulome_annotations/Results/Annotations_from_web_interface/regulome_annotation_matched_to_original_variant/173_ccRCC_genes/ biomart GO annotation of 164 total non-cod genes.xls
+
+
+9.2.	The GO annotation of the TRIO, FRYL and AKT1,ADCY1, ANK3, CUBN, VWF and VHL genes were copied from the BioMart GO annotation of 164 total non-cod genes.xls file and pasted onto its own sheet: GO of genes with multipl mut. 
+The Conditional Formatting -> Highlight cell rules -> Text that contains was used in order to highlight the cells containing the text I specified e.g. ‘prolifereation’
+
+9.3.	Nine genes with one mutations as opposed to multiple mutation in many genomic regions were randomly selected to see if they also participate in as many cancer-related activities
+
+MDC1 (adhesion)
+CA9 (transcription)
+SCD (none)
+STK11 (apoptosis, signalling, receptor activity)
+FAM107A (none)
+PRKCD (apoptosis, signalling, receptor activity)
+KRT7 (none)
+TLR3 (apoptosis, signalling, receptor activity)
+PTTG1 (transcription)
+
+9.4.	The eight RCC genes with no SM were also selected and the gene lengths and GOs were retrieved and stored in
+/ICGC/Regulome_annotations/Results/Annotations_from_web_interface/regulome_annotation_matched_to_original_variant/173_ccRCC_genes/gene lengths and GO annot for RCC genes with NO SVs.xlsx.
+
+The genes were:
+CCKBR
+CLDN7
+HLA-A
+HSPA8
+LGALS3
+NONO
+PECAM1
+RAF1
+
+10.	Clinical Information
+
+10.1.	The donor id with the number of mutations per mutation category (ALL non-coding, non-coding deleterious and all CDS mutations) were copied to a separate file (vlookup_donor_no_and_types_of_mutations.txt) in the same folder 
+/MASTERS_2014/ICGC/Regulome_annotations/Results/Annotations_from_web_interface/regulome_annotation_matched_to_original_variant/173_ccRCC_genes/
+
+This was then used with the python script match_mutations_to_donor_ID.py to link the number of mutations per category to the donor ID.
+
+Input files: 
+/MASTERS_2014/ICGC/Regulome_annotations/Results/Annotations_from_web_interface/regulome_annotation_matched_to_original_variant/173_ccRCC_genes/vlookup_donor_no_and_types_of_mutations.txt AND 
+/MASTERS_2014/ICGC/donor.all_projects.tsv
+Output file: 
+/MASTERS_2014/ICGC/Regulome_annotations/Results/Annotations_from_web_interface/regulome_annotation_matched_to_original_variant/173_ccRCC_genes/donor_clinical_AND_SM_info.txt
+
+10.2.	The donor IDs were also checked for common genes or common genomic position in order to ascertain if variants in certain genomic regions resulted in a more severe phenotype. Stored in sheets deceased patient & common genes and location of mut in deceased, respectively.
+
+11.	TFBS analysis
+11.1.	  ccRCC disease genes
+
+
+11.1.1.	The combined_non_coding_regulome_annotation_of_sv.txt file was then used in the TFBS analysis in order to see whether these SM fell within TFBSs
+
+A python script was used to extract all TF and TFBS information for the non-coding somatic mutations.
+Python script: som_mut_in_TFBS.py
+Input files:
+/MASTERS_2014/ICGC/Regulome_annotations/Results/Annotations_from_web_interface/regulome_annotation_matched_to_original_variant/173_ccRCC_genes/combined_non_coding_regulome_annotation_of_sv.txt  AND
+  /MASTERS_2014/ICGC/TFBS/wgEncodeRegTfbsClusteredV3.bed
+Output file:
+/MASTERS_2014/ICGC/TFBS/Results/173_ccRCC_genes_/non_cod_mut_in_TFBS.txt
+
+11.1.2.	The results were placed into a pivot table (pivot ALL and deleterious TFBS.xlsx)
+The deleterious mutations were separated to place into the previous Vlookup table /MASTERS_2014/ICGC/Regulome_annotations/Results/Annotations_from_web_interface/regulome_annotation_matched_to_original_variant/173_ccRCC_genes/vlookup_donor_no_and_types_of_mutations.txt 
+
+11.1.3.	The script was modified to accommodate the CDS mutations
+Input files: 
+/MASTERS_2014/ICGC/Regulome_annotations/Results/Annotations_from_web_interface/regulome_annotation_matched_to_original_variant/173_ccRCC_genes/173_ccRCC_regulome_annotation_CDS_sv.txt
+Output file: /MASTERS_2014/ICGC/Regulome_annotations/Results/Annotations_from_web_interface/regulome_annotation_matched_to_original_variant/173_ccRCC_genes/CDS_mut_in_TFBS.txt
+
+11.1.4.	A pivot table was also created for the CDS TFBS data in order to extract donor to TF and gene to TF relationship data (pivot CDS mut in TFBS.xlsx)
+
+
+11.2.	Non-disease genes
+
+11.2.1.	 Similarly the som_mut_in_TFBS.py script was modified for the non-disease genes
+Input files:  
+/MASTERS_2014/ICGC/Regulome_annotations/Results/Annotations_from_web_interface/regulome_annotation_matched_to_original_variant/173_non_disease_genes/combined_non_disease_non_coding_regulome_annot_of_sv.txt
+
+Output files:
+/MASTERS_2014/ICGC/Regulome_annotations/Results/Annotations_from_web_interface/regulome_annotation_matched_to_original_variant/173_non_disease_genes/non_disease_non_coding_mut_in_TFBS.txt
+
+11.2.2.	 These data for the combined non-coding variants vs TFBS were also copied to a pivot table pivot non-disease non-coding TFBS.xlsx.
+
+
+11.2.3.	The script was once gain modified to accept the CDS non-disease variants
+Output file: 
+/MASTERS_2014/ICGC/Regulome_annotations/Results/Annotations_from_web_interface/regulome_annotation_matched_to_original_variant/173_non_disease_genes/non_disease_CDS_mut_in_TFBS.txt
+
+11.2.4.	 The TFBS data was added to the vlookup sheet pivot_combined_non_coding_deleterious.xlsx and charts were made to see the comparison in terms of how the somatic mutations affected the TFBS .
+
+11.2.5.	The genomic position were also analysed to see if any individuals had variants at the exact same genomic positions. This was all done using Pivot tables. Stored in:
+
+ pivot_combined_non_coding_deleterious.xlsx , sheet position of mut
+
+
+12.	Methylation
+
+12.1.	ccRCC disease genes
+
+12.1.1.	I ran the methylation_in_non_coding_regions.py to find the methylation statuses of the promoter regions for the 173 GOI.
+
+Input files:
+/MASTERS_2014/ICGC/Methylation/promoter_meth_ccRCC.txt AND 
+/MASTERS_2014/ICGC/Bed_files_of_175_genes_using_UCSC/173_ccRCC_genes/introns_173_ccRCC_genes_UNIQ.txt
+
+Output file:
+/MASTERS_2014/ICGC/Methylation/173_ccRCC_genes/methylation_in_promoter.txt
+
+12.2.	Non-disease genes 
+
+12.2.1.	The methylation_in_non_coding_regions.py was modified for the non-disease genes
+ MASTERS_2014/ICGC/Methylation/promoter_meth_ccRCC.txt AND 
+/MASTERS_2014/ICGC/Results_promoter_methylation/173_non_disease_genes/non_disease_methylation_in_promoter.txt
+
+
+12.3.	The HCNC symbols were manually added to all files using UCSC and Ensembl
+
+12.4.	The genomic region was placed into the methylation file (e.g. introns if the variant originally came from the intron bed file) and the bed regions were deleted in excel. The methylation files were combined using 
+
+sort –t’Ctrl + V + Tab’ –k1,1 –k2,2 –k3,3 –k,4 –k8,8 –k10,10 –k13,13 –k14,14 methylation…… -u > combined_methylation_in_non_coding_regions.txt
+(the genomic region from the methylation data file as well as beta values was ignored for now)
+Output files: 
+/MASTERS_2014/ICGC/Methylation/Results_promoter_methylation/173_ccRCC_genes
+
+12.5.	The results were placed into a pivot table.
+ (pivot methylation in non-coding regions.xlsx)
+
+12.6.	Similarly the non-disease genes were combined
+ sort -t'    ' -k1,1 -k2,2 -k4,4 -k8,8 -k10,10 -k16,16 non_disease_methylation_in_promoter.txt non_disease_methylation_in_introns.txt -u > combined_non_coding_non_disease_methylation.txt
+Output files: 
+/MASTERS_2014/ICGC/Methylation/Results_promoter_methylation/173_non_disease_genes
+
+12.7.	16 RCC genes had aberrant methylation. The GO annotations for these genes were also observed an pasted in
+/ICGC/Regulome_annotations/Results/Annotations_from_web_interface/regulome_annotation_matched_to_original_variant/173_ccRCC_genes/ biomart GO annotation of 164 total non-cod genes.xls in the Sheet: methylated genes
+
+
+13.	Gene Expression and methylation data
+
+13.1.	ccRCC disease genes
+
+13.1.1.	The methylation data was coupled to the gene expression data using 
+Python: python gene_expr_at_diff_methyl_regions.py 
+
+Input files:
+/MASTERS_2014/ICGC/Methylation/Results_promoter_methylation/173_ccRCC_genes/UNIQ/combined_methylation_in_non_coding_regions.txt AND	 /MASTERS_2014/ICGC/Gene_expression_ICGC_and_COSMIC/gene_exp_data_for_ccRCC_andGOI.txt
+
+Output files:
+/MASTERS_2014/ICGC/Gene_expression_ICGC_and_COSMIC/Results_COSMIC_methylated_regions/173_ccRCC_genes/gene_expr_at_methyl_region_combined_ccRCC.txt
+
+13.1.2.	The significant methylation vs gene expression data was recorded (inverse proportionality between gene expression and diff methylation)
+Python: significant_correlat_gene_exp_and_methyl.py 
+
+Input files: 
+MASTERS_2014/ICGC/Methylation/Results_promoter_methylation/173_ccRCC_genes/UNIQ/combined_methylation_in_non_coding_regions.txt AND	 /MASTERS_2014/ICGC/Gene_expression_ICGC_and_COSMIC/gene_exp_data_for_ccRCC_andGOI.txt
+
+Output files:	 /MASTERS_2014/ICGC/Gene_expression_ICGC_and_COSMIC/Results_COSMIC_methylated_regions/173_ccRCC_genes/gene_expr_at_methyl_region_combined_ccRCC.txt
+
+13.2.	Non-disease genes
+
+13.2.1.	The same was done for the non-disease genes by modifying the script
+Python: python gene_expr_at_diff_methyl_regions.py 
+
+Input file:
+/MASTERS_2014/ICGC/Methylation/Results_promoter_methylation/173_non_disease_genes/combined_non_coding_non_disease_methylation.txt AND	 /MASTERS_2014/ICGC/Gene_expression_ICGC_and_COSMIC/ALL_GE_data_for_95_random_patients_173_disease_and_non_disease_genes.txt
+
+Output file:MASTERS_2014/ICGC/Gene_expression_ICGC_and_COSMIC/Results_COSMIC_methylated_regions/173_non_disease_genes/gene_expr_at_methyl_region_combined_non_disease.txt
+
+13.2.2.	The significant_correlat_gene_exp_and_methyl.py script was modified to accommodate to non-disease genes
+
+
+14.	Gene Expression and non-coding somatic mutations
+
+
+A lot of processing had to be done before the GE data could be extracted. First the entries with the 173 disease and non-disease genes had to be extracted. The gene expression file from ICGC had no matching normal tissue that was sequenced so differential analysis (Fold change) could not be determined. Hence the gene expression data from COSMIC/TCGA was used just to check simply on gene level, if the gene was found to be frequently differentially methylated in many ccRCC tumours. 
+
+a)	The Differential gene expression for all cancers were retrieved from COSMIC Whole genomes http://cancer.sanger.ac.uk/wgs/files?data=/files/grch38/cosmic/v73/CosmicCompleteGeneExpression.tsv.gz, Accessed June 2015.
+b)	The sort -t 'Ctrl + v + Tab ' -k2,2 CosmicCompleteGeneExpression.tsv -u > uniq_patients_CosmicCompleteGeneExpression.tsv was used to ascertain the number of patients for which the gene expression data was recorded. 
+c)	However since TCGA combined all the gene expression data from all their cancer patients there were a total of 8348 unique patient ID’s.
+Output file:
+/MASTERS_2014/ICGC/Gene_expression_ICGC_and_COSMIC/ uniq_patients_CosmicCompleteGeneExpression.tsv
+
+d)	Hence, the tissue bar codes for ccRCC tissue were retrieved from TCGA and a Python script was used to extract the GE data for ccRCC tissues/genes only.
+Python: extract_ccRCC_gene_exp_data.py
+Input files:
+MASTERS_2014/ICGC/Gene_expression_ICGC_and_COSMIC/COSMIC_gene_exp_173_non-disease.txt AND
+MASTERS_2014/ICGC/TCGA_tissue_codes.txt
+Output: /MASTERS_2014/ICGC/Gene_expression_ICGC_and_COSMIC/gene_exp_data_for_ccRCC_tissue_AND_non_disease_genes.txt
+
+e)	To make sure that the use of study subjects was unbiased, the GE data for 95 patients were extracted to be used for both disease and non-disease genes
+Python script:  extract_GE_data_for_95_patients_from_521_patients.py
+Input files: 
+/MASTERS_2014/ICGC/Gene_expression_ICGC_and_COSMIC/combined_ccRCC_tissue_ALL_disease_and_non_disease_GE_data.txt AND	 MASTERS_2014/ICGC/Gene_expression_ICGC_and_COSMIC/Results_ICGC_and_COMSIC_gene_exp_and_SV/random_95_patients_ALL_disease_and_non_disease_genes.txt
+f)	The same Python script was then used to extract the GE data for the ccRCC non-coding and CDS variants and the non-disease non-coding and CDS variants and the input and output file names were changesd as necessary.
+Python script: SV_and_COSMIC_gene_exp.py
+g)	I created a pivot table for the RCC genes: pivot ALL diff reg genes.xlsx for further analysis.
+
+15.	STRING-DB
+
+15.1.	The genes with the most deleterious, non-coding somatic mutations (2 or more, n = 31, genes), the top 30 genes with the most TFBS disruptions in the non-coding regions (33 or more disruptions), the genes which incurred differential methylation in their promoters (n = 17) and the three TFs of which the TFBSs are commonly disrupted in the deceased patients were extracted and duplicates were removed in Excel. A total of 57 unique genes/proteins were therefore submitted to String-DB and the analysis was carried out using the highest confidence score in String-DB.
+
+15.2.	The Biological Process was considered as the Gene ontology: Negative regulation of biological process contained the most molecules.
+
+15.3.	Then the network was zoomed out in order to establish hub proteins.  Experimental was used as the sole parameter. UBC was identified.
+
+15.4.	Some of the genes that were unattached in the network were checked individually on the highest confidence and experimental evidence only
+PLEC linked to ITGB4 (integrin receptor protein for laminin)
+TRIO linked to UBC via RAC1 (GTPase which in its active state regulates apoptotic cells)
+MLL2 linked to RBBP5 retinoblastoma binding protein 5 that plays a crucial role in cell differentiation and regulates H3K4 methylation at important developmental loci
+DOCK2 also linked to UBC via RAC1 (ras-related C3 botulinum toxin substrate 1 )
+OGG1 was also linked to UBC via POLH DNA polymerase specifically involved in DNA repair.
+
+
+15.5.	When the pathways that could be perturbed by these mutations were considered, ten of the molecules functioned in the phosphoinositide 3-kinase (PI3K)/ Akt pathway. 
+
+
+16.	Allele Frequency
+
+a)	The AF of the combined non-coding ccRCC and non-disease genes variants were checked as well as the variants in the CDS regions for both categories. 
+
+b)	Since the combined non-coding file was big (over 4000 variants) and the 1000 genomes dataset doesn’t look at the donor ID, the file was sorted to filter out duplicate entries by ignoring the donor ID.
+sort -k1,1 -k2,2 -k3,3 -k4,4 -k7,7 -k8,8 -k9,9 -k11,11 combined_non_coding_regulome_annotation_of_sv.txt -u > combined_non_coding_regulome_annotation_of_sv_UNIQ_positions.txt
+
+This brought the number down from 4385 to 4226
+
+c)	A python script was used to extract the variants in the non-coding somatic mutation file if the allele for that variant was found in the 1000Genome dataset.
+ 
+Python script: 1000genomes_variant.py 
+
+16.1.	ccRCC disease genes 
+
+16.1.1.	Non-coding variants
+Input files:	 /MASTERS_2014/1000_genomes/somatic_variants_1000genomes/input_files/Variants* AND /MASTERS_2014/ICGC/Regulome_annotations/Results/Annotations_from_web_interface/regulome_annotation_matched_to_original_variant/173_ccRCC_genes/combined_non_coding_regulome_annotation_of_sv_UNIQ_positions.txt
+Output files:
+ /MASTERS_2014/ICGC/1000genomes/173_cccRCC_genes/cRCC_non_coding_AFs.txt
+
+16.1.2.	CDS variants
+Input files:
+MASTERS_2014/1000_genomes/somatic_variants_1000genomes/input_files/Variants* AND /MASTERS_2014/ICGC/Regulome_annotations/Results/Annotations_from_web_interface/regulome_annotation_matched_to_original_variant/173_ccRCC_regulome_annotation_CDS_sv.txt
+Output files :/MASTERS_2014/ICGC/1000genomes/173_cccRCC_genes/cRCC_CDS_AFs.txt
+
+
+16.2.	Non-disease genes 
+
+16.2.1.	Non-coding variants
+/MASTERS_2014/1000_genomes/somatic_variants_1000genomes/input_files/Variants* AND MASTERS_2014/ICGC/Regulome_annotations/Results/Annotations_from_web_interface/regulome_annotation_matched_to_original_variant/173_non_disease_genes/combined_non_disease_non_coding_regulome_annot_of_sv
+Output files non-disease and non-coding:/MASTERS_2014/ICGC/1000genomes/173_non_disease_genes/non_disease_genes_non_coding_AFs.txt
+
+16.2.2.	CDS variants
+
+Input files:
+MASTERS_2014/1000_genomes/somatic_variants_1000genomes/input_files/Variants* AND /MASTERS_2014/ICGC/Regulome_annotations/Results/Annotations_from_web_interface/regulome_annotation_matched_to_original_variant//173_ccRCC_genes/173_non_disease_genes/non_disease_regulome_annotation_CDS_sv.txt
+Output files:
+/MASTERS_2014/ICGC/1000genomes/173_non_disease_genes/non_disease_genes_CDS_AFs.txt
+
+
+16.3.	Most of the variants were not found  so several random variants (~30) were checked using grep variant position 1000genomes_filename
+
+16.4.	The variants were also checked using Ensembl BioMart (hg19) using the Ensembl Variants database and the Homo sapiens Somatic Short Variants (SNPs and indels) (GRCh37.p13) dataset.
+The filters section was used to choose the chromosome and to enter the variant start and end region. To ascertain that the search was being carried out correctly and that the results indicate that my variant was definitely not found, the range was increased to include about 100000 bases before and after the start and end coordinate, respectively. The generated many results. The View all feature was used together with Control+Find in order to check if my variant was not in this list of variants.
+
